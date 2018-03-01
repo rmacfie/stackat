@@ -1,0 +1,21 @@
+{
+  "name": "stackat",
+  "version": "0.0.0",
+  "author": "Robert Macfie <robert@macfie.se>",
+  "license": "MIT",
+  "main": "index.js",
+  "scripts": {
+    "build": "tsc",
+    "start:compile": "tsc --watch",
+    "start:example:stack": "nodemon --watch ./dist/examples ./dist/examples/stack-example.js",
+    "start": "run-p start:**"
+  },
+  "devDependencies": {
+    "@types/node": "^9.4.6",
+    "nodemon": "^1.17.1",
+    "npm-run-all": "^4.1.2",
+    "tslib": "^1.9.0",
+    "tslint": "^5.9.1",
+    "typescript": "^2.7.2"
+  }
+}

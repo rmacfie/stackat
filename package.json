@@ -5,13 +5,25 @@
   "license": "MIT",
   "main": "index.js",
   "scripts": {
-    "clean": "rimraf ./*(.js|.d.ts) ./(examples|tests)/**/*(.js|.d.ts)",
+    "clean": "rimraf ./*.{js,d.ts}",
+    "prebuild": "run-s clean",
     "build": "tsc",
-    "pretest": "tsc",
     "test": "jest",
-    "watch:build": "tsc --watch",
-    "watch:test": "jest --watch",
-    "watch": "run-p watch:*"
+    "watch": "jest --watch"
+  },
+  "jest": {
+    "transform": {
+      "^.+\\.tsx?$": "ts-jest"
+    },
+    "testRegex": "\\.(test|spec)\\.(jsx?|tsx?)$",
+    "moduleFileExtensions": [
+      "ts",
+      "tsx",
+      "js",
+      "jsx",
+      "json",
+      "node"
+    ]
   },
   "devDependencies": {
     "@types/jest": "^22.1.4",
@@ -20,6 +32,7 @@
     "nodemon": "^1.17.1",
     "npm-run-all": "^4.1.2",
     "rimraf": "^2.6.2",
+    "ts-jest": "^22.4.1",
     "tslib": "^1.9.0",
     "tslint": "^5.9.1",
     "typescript": "^2.7.2"

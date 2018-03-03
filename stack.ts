@@ -19,8 +19,8 @@ export class Stack<TState = {}> {
   listener() {
     return (req: http.IncomingMessage, res: http.ServerResponse): void => {
       const ctx: StackContext<TState> = {
-        req,
-        res,
+        req: req,
+        res: res,
         state: {} as any,
       };
       this.next(0, ctx).catch((err) => {
@@ -51,9 +51,7 @@ export class Stack<TState = {}> {
 const defaultErrorHandler: StackErrorHandler<any> = (err, ctx) => {
   ctx.res.writeHead(500, { 'Content-Type': 'text/plain; charset=UTF-8' });
   ctx.res.end('# Internal Server Error\n\n' + err);
-
   // tslint:disable-next-line:no-console
   console.error('Unhandled error', err);
-
   return Promise.resolve();
 };

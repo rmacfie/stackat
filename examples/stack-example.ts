@@ -1,5 +1,5 @@
 import * as http from 'http';
-import Stack from '../src/stack';
+import { Stack } from '../stack';
 
 const PORT = 5000;
 
@@ -16,7 +16,7 @@ stack.use(async (ctx, next) => {
 
 stack.use(async (ctx, next) => {
   ctx.res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8' });
-  ctx.res.write(`Hello, ${ctx.state.name}!`);
+  ctx.res.write(`Hello, ${ctx.state.name}!\n`);
   ctx.res.end();
 });
 

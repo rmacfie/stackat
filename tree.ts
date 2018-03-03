@@ -1,31 +1,31 @@
-import Check from './check';
+import { Validator } from './validator';
 
-export type Method =
+export type TreeMethod =
   'GET' | 'HEAD' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 
-export const ValidMethods: Method[] = [
+export const ValidMethods: TreeMethod[] = [
   'GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE',
 ];
 
-export interface Match<TData> {
+export interface TreeMatch<TData> {
   nodeId: number;
-  options: Method[];
+  options: TreeMethod[];
   params: { [name: string]: string };
   data: TData | null;
 }
 
 export class Tree<TData> {
-  private readonly root = new Node<TData>('', '/', Type.literal, null);
+  private readonly root = new TreeNode<TData>('', '/', TreeNodeType.literal, null);
 
-  add(method: Method, pattern: string, data: TData) {
-    const check = Check(``, ` (${method} ${pattern})`);
-    check(typeof method === 'string', () => `method must be a string`);
-    check(ValidMethods.includes(method), () => `method must be one of ${ValidMethods.join(', ')}`);
-    check(typeof pattern === 'string', () => `pattern must be a string`);
-    check(pattern.startsWith('/'), () => `pattern must start with a forward slash, i.e. '/'`);
-    check(pattern === '/' || !pattern.endsWith('/'), () => `pattern must not end with a forward slash, i.e. '/'`);
-    check(!pattern.includes('//'), () => `pattern must not contain double forward slashes, i.e. '//'`);
-    check(data != null, () => `data must not be null or undefined`);
+  add(method: TreeMethod, pattern: string, data: TData) {
+    const validate = Validator(``, () => ` (${method} ${pattern})`);
+    validate(typeof method === 'string', () => `method must be a string`);
+    validate(ValidMethods.includes(method), () => `method must be one of ${ValidMethods.join(', ')}`);
+    validate(typeof pattern === 'string', () => `pattern must be a string`);
+    validate(pattern.startsWith('/'), () => `pattern must start with a forward slash, i.e. '/'`);
+    validate(pattern === '/' || !pattern.endsWith('/'), () => `pattern must not end with a forward slash, i.e. '/'`);
+    validate(!pattern.includes('//'), () => `pattern must not contain double forward slashes, i.e. '//'`);
+    validate(data != null, () => `data must not be null or undefined`);
 
     const tokens = pattern.split('/');
     let node = this.root;
@@ -33,26 +33,26 @@ export class Tree<TData> {
     for (let i = 1; i < tokens.length; i++) {
       const token = tokens[i];
       if (token[0] === ':') {
-        check(node.children['*'] == null, () => `parameter '${token}' is in conflict with existing wildcard`);
-        node = node.getOrAddChild(':', () => new Node(token, token.substr(1), Type.parameter, node));
+        validate(node.children['*'] == null, () => `parameter '${token}' is in conflict with existing wildcard`);
+        node = node.getOrAddChild(':', () => new TreeNode(token, token.substr(1), TreeNodeType.parameter, node));
       } else if (token[0] === '*') {
-        check(node.children[':'] == null, () => `wildcard is in conflict with existing parameter '${node.children[':'].token}'`);
-        check(i === tokens.length - 1, () => `wildcard must not be followed by a forward slash, i.e. '/'`);
-        node = node.getOrAddChild('*', () => new Node(token, token.substr(1), Type.wildcard, node));
+        validate(node.children[':'] == null, () => `wildcard is in conflict with existing parameter '${node.children[':'].token}'`);
+        validate(i === tokens.length - 1, () => `wildcard must not be followed by a forward slash, i.e. '/'`);
+        node = node.getOrAddChild('*', () => new TreeNode(token, token.substr(1), TreeNodeType.wildcard, node));
       } else {
-        node = node.getOrAddChild(token, () => new Node(token, token, Type.literal, node));
+        node = node.getOrAddChild(token, () => new TreeNode(token, token, TreeNodeType.literal, node));
       }
     }
 
-    check(node.data[method] == null, () => `same method and pattern is already defined`);
+    validate(node.data[method] == null, () => `same method and pattern is already defined`);
     node.data[method] = data;
   }
 
-  lookup(method: Method, path: string): Match<TData> | null {
-    const check = Check(``, ` (${method} ${path})`);
-    check(typeof method === 'string', `method must be a string`);
-    check(typeof path === 'string', `path must be a string`);
-    check(path[0] === '/', `path must start with a forward slash, i.e. '/'`);
+  lookup(method: TreeMethod, path: string): TreeMatch<TData> | null {
+    const validate = Validator(``, ` (${method} ${path})`);
+    validate(typeof method === 'string', `method must be a string`);
+    validate(typeof path === 'string', `path must be a string`);
+    validate(path[0] === '/', `path must start with a forward slash, i.e. '/'`);
 
     const parts = path.split('/');
     let node = this.root;
@@ -85,19 +85,19 @@ export class Tree<TData> {
 
 let nodeCounter = 0;
 
-class Node<TData> {
+class TreeNode<TData> {
   readonly id = ++nodeCounter;
-  readonly children: { [key: string]: Node<TData> } = {};
-  readonly data = new Methods<TData | null>(null);
+  readonly children: { [key: string]: TreeNode<TData> } = {};
+  readonly data = new TreeMethods<TData | null>(null);
   constructor(
     readonly token: string,
     readonly name: string,
-    readonly type: Type,
-    readonly parent: Node<TData> | null,
+    readonly type: TreeNodeType,
+    readonly parent: TreeNode<TData> | null,
   ) {
   }
 
-  getOrAddChild(key: string, add: () => Node<TData>) {
+  getOrAddChild(key: string, add: () => TreeNode<TData>) {
     return this.children[key] == null ? this.children[key] = add() : this.children[key];
   }
 
@@ -106,13 +106,13 @@ class Node<TData> {
   }
 }
 
-enum Type {
+enum TreeNodeType {
   literal = 0,
   parameter = 1,
   wildcard = 2,
 }
 
-class Methods<T> {
+class TreeMethods<T> {
   GET: T;
   HEAD: T;
   POST: T;

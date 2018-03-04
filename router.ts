@@ -68,11 +68,11 @@ export class Router<TState = {}> {
       // no match
       return await next();
     } else if (method === 'OPTIONS') {
-      // client is asking for possible methods
+      // client is asking for allowed methods
       ctx.response.writeHead(200, { Allow: match.options.join(', ') });
       ctx.response.end();
     } else if (match.data == null) {
-      // client can't use that method here
+      // client can't use the requested method on this route
       ctx.response.writeHead(405, { Allow: match.options.join(', ') });
       ctx.response.end();
     } else {

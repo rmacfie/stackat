@@ -1,4 +1,5 @@
 import * as http from 'http';
+import { Content, emptyContent, HTMLContent, HTTPStatusCode, JSONContent, statusCode, textContent } from './content';
 import { Router } from './router';
 import { Stack } from './stack';
 import { HTTPMethod } from './tree';
@@ -19,11 +20,7 @@ export type Middleware<TContext, TState>
   = (ctx: TContext, next: () => Promise<Result<TState>>) => Promise<Result<TState>>;
 
 export type Result<TState>
-  = null | number | string | ExecutableResult<TState>;
-
-export interface ExecutableResult<TState> {
-  execute(request: http.IncomingMessage, response: http.ServerResponse, state: TState): void;
-}
+  = null | HTTPStatusCode | string | Content;
 
 export class Application<TContext extends Context<TState> = Context<TState>, TState = {}> {
   private readonly stack: Stack<TState>;
@@ -81,19 +78,25 @@ export class Application<TContext extends Context<TState> = Context<TState>, TSt
     }
 
     this.router.on(method, path, async (stack) => {
-      const ctx: TContext = {} as any;
-      ctx.http = { request: stack.request, response: stack.response };
-      ctx.state = stack.state;
-      ctx.params = stack.params;
-      const result = await handler(ctx);
+      const ctx: Context<TState> = {
+        http: { request: stack.request, response: stack.response },
+        state: stack.state as TState,
+        params: stack.params,
+      };
 
-      if (typeof result === 'string') {
-        stack.response.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8' });
-        stack.response.write(result);
-        stack.response.end();
-      } else {
-        throw new Error('Result type not handled yet');
+      let result = await handler(ctx as TContext);
+
+      if (result == null) {
+        result = emptyContent();
+      } else if (typeof result === 'number') {
+        result = statusCode(result);
+      } else if (typeof result === 'string') {
+        result = textContent(result);
+      } else if (typeof result.apply !== 'function') {
+        throw new Error('Unknown result type');
       }
+
+      await Promise.resolve(result.apply(stack.request, stack.response));
     });
   }
 
@@ -110,5 +113,6 @@ export class Application<TContext extends Context<TState> = Context<TState>, TSt
         console.info(`Application started at http://localhost:${port}`);
       }
     });
+    return server;
   }
 }

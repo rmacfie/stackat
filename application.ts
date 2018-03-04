@@ -4,11 +4,12 @@ import { Stack } from './stack';
 import { HTTPMethod } from './tree';
 
 export interface Context<TState> {
-  stack: {
+  http: {
     request: http.IncomingMessage;
     response: http.ServerResponse;
-    state: TState;
   };
+  state: TState;
+  params: { [key: string]: string };
 }
 
 export type Handler<TContext, TState>
@@ -80,8 +81,19 @@ export class Application<TContext extends Context<TState> = Context<TState>, TSt
     }
 
     this.router.on(method, path, async (stack) => {
-      const ctx: TContext = { stack: stack } as any;
+      const ctx: TContext = {} as any;
+      ctx.http = { request: stack.request, response: stack.response };
+      ctx.state = stack.state;
+      ctx.params = stack.params;
       const result = await handler(ctx);
+
+      if (typeof result === 'string') {
+        stack.response.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8' });
+        stack.response.write(result);
+        stack.response.end();
+      } else {
+        throw new Error('Result type not handled yet');
+      }
     });
   }
 

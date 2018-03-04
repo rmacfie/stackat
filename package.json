@@ -18,17 +18,21 @@
   ],
   "scripts": {
     "clean": "rimraf ./*.{js,d.ts}",
-    "prebuild": "run-s clean",
-    "build": "tsc",
-    "preprepare": "run-s clean",
-    "prepare": "tsc",
+    "build:ts": "tsc -d",
+    "build": "run-s clean build:*",
+    "prepublish": "run-s build",
     "test": "jest",
-    "watch": "jest --watch"
+    "watch": "jest --watch",
+    "examples:ts": "tsc --watch",
+    "examples:app": "nodemon examples/app.js",
+    "examples": "run-p examples:*"
   },
   "devDependencies": {
     "@types/jest": "^22.1.4",
     "@types/node": "^9.4.6",
     "jest": "^22.4.2",
+    "nodemon": "^1.17.1",
+    "npm-run-all": "^4.1.2",
     "rimraf": "^2.6.2",
     "ts-jest": "^22.4.1",
     "tslib": "^1.9.0",

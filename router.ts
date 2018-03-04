@@ -6,6 +6,7 @@ export interface RouteContext<TState> {
   request: http.IncomingMessage;
   response: http.ServerResponse;
   state: TState;
+  params: { [key: string]: string };
 }
 
 export type RouteHandler<TState> =
@@ -76,7 +77,12 @@ export class Router<TState = {}> {
       ctx.response.end();
     } else {
       // call the handler
-      await match.data(ctx);
+      await match.data({
+        request: ctx.request,
+        response: ctx.response,
+        state: ctx.state,
+        params: match.params,
+      });
     }
   }
 }

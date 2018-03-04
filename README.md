@@ -19,7 +19,7 @@ app.GET('/', async ctx => {
 app.start();
 
 # GET http://localhost:5000/
-#   => "Hello, John!"
+#   => "Hello, world!"
 ```
 
 **URL parameter**

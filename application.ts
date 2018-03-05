@@ -1,5 +1,5 @@
 import * as http from 'http';
-import { Content, emptyContent, HTMLContent, HTTPStatusCode, JSONContent, statusCode, textContent } from './content';
+import { EmptyResult, HTMLResult, HTTPStatusCode, JSONResult, ResultFunction, StatusResult, TextResult } from './result';
 import { Router } from './router';
 import { Stack } from './stack';
 import { HTTPMethod } from './tree';
@@ -14,13 +14,13 @@ export interface Context<TState> {
 }
 
 export type Handler<TContext, TState>
-  = (ctx: TContext) => Promise<Result<TState>>;
+  = (ctx: TContext) => Promise<HandlerResult>;
+
+export type HandlerResult
+  = null | HTTPStatusCode | string | { [key: string]: any } | { [key: string]: any }[] | ResultFunction;
 
 export type Middleware<TContext, TState>
-  = (ctx: TContext, next: () => Promise<Result<TState>>) => Promise<Result<TState>>;
-
-export type Result<TState>
-  = null | HTTPStatusCode | string | Content;
+  = (ctx: TContext, next: () => Promise<HandlerResult>) => Promise<HandlerResult>;
 
 export class Application<TContext extends Context<TState> = Context<TState>, TState = {}> {
   private readonly stack: Stack<TState>;
@@ -87,16 +87,16 @@ export class Application<TContext extends Context<TState> = Context<TState>, TSt
       let result = await handler(ctx as TContext);
 
       if (result == null) {
-        result = emptyContent();
+        result = EmptyResult();
       } else if (typeof result === 'number') {
-        result = statusCode(result);
-      } else if (typeof result === 'string') {
-        result = textContent(result);
-      } else if (typeof result.apply !== 'function') {
+        result = StatusResult(result);
+      } else if (typeof result === 'object') {
+        result = JSONResult(result);
+      } else if (typeof result !== 'function') {
         throw new Error('Unknown result type');
       }
 
-      await Promise.resolve(result.apply(stack.request, stack.response));
+      await Promise.resolve((result as ResultFunction)(stack.request, stack.response));
     });
   }
 

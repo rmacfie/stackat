@@ -1,17 +1,17 @@
-import { Application, fileContent, HTMLContent, JSONContent, textContent } from '../';
+import { Application, FileResult, HTMLResult, JSONResult, TextResult } from '../';
 
 const app = new Application();
 
 app.GET('/', async (ctx) => {
-  return `Hello, world!`; // plain text result
+  return TextResult(`Hello, world!`); // plain text result
 });
 
-app.GET('/greet/:name', async (ctx) => {
-  return `Hello, ${ctx.params.name}!`;
+app.GET('/greet/:firstName', async (ctx) => {
+  return TextResult(`Hello, ${ctx.params.firstName}!`); // parameter
 });
 
-app.GET('/greets/*name', async (ctx) => {
-  return `Hello, ${ctx.params.name}!`;
+app.GET('/greets/*names', async (ctx) => {
+  return TextResult(`Hello, ${ctx.params.names}!`); // wildcard (catch-all) parameter
 });
 
 app.GET('/status', async (ctx) => {
@@ -23,18 +23,19 @@ app.GET('/empty', async (ctx) => {
 });
 
 app.GET('/api/json', async (ctx) => {
-  return JSONContent({
-    foo: 'bar',
-    x: 13,
-  });
+  return { foo: 'bar', x: 24 };
+});
+
+app.GET('/api/json/explicit', async (ctx) => {
+  return JSONResult({ foo: 'bar', x: 13 });
 });
 
 app.GET('/some/file', async (ctx) => {
-  return fileContent('./presentation01.pdf');
+  return FileResult('./presentation01.pdf');
 });
 
 app.GET('/my/page', async (ctx) => {
-  return HTMLContent(`
+  return HTMLResult(`
     <!DOCTYPE html>
     <html>
       <body>

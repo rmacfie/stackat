@@ -15,25 +15,31 @@ export interface TreeMatch<TData> {
 export class Tree<TData> {
   private readonly root = new TreeNode<TData>('', '/', TreeNodeType.literal, null);
 
-  add(method: HTTPMethod, pattern: string, data: TData) {
-    if (typeof method !== 'string') {
-      throw new Error(`The method must be a string (${method} ${pattern})`);
-    } else if (!ValidHTTPMethods.includes(method)) {
-      throw new Error(`The method must be one of ${ValidHTTPMethods.join(', ')} (${method} ${pattern})`);
+  add(methods: HTTPMethod[], pattern: string, data: TData) {
+    if (!Array.isArray(methods)) {
+      throw new Error(`The methods must be an array of strings (${pattern})`);
+    }
+
+    for (const m of methods) {
+      if (typeof m !== 'string') {
+        throw new Error(`The method must be a string (${m} ${pattern})`);
+      } else if (!ValidHTTPMethods.includes(m)) {
+        throw new Error(`The method must be one of ${ValidHTTPMethods.join(', ')} (${m} ${pattern})`);
+      }
     }
 
     if (typeof pattern !== 'string') {
-      throw new Error(`The pattern must be a string (${method} ${pattern})`);
+      throw new Error(`The pattern must be a string (${pattern})`);
     } else if (!pattern.startsWith('/')) {
-      throw new Error(`The pattern must start with a forward slash, i.e. '/' (${method} ${pattern})`);
+      throw new Error(`The pattern must start with a forward slash, i.e. '/' (${pattern})`);
     } else if (pattern !== '/' && pattern.endsWith('/')) {
-      throw new Error(`The pattern must not end with a forward slash, i.e. '/' (${method} ${pattern})`);
+      throw new Error(`The pattern must not end with a forward slash, i.e. '/' (${pattern})`);
     } else if (pattern.includes('//')) {
-      throw new Error(`The pattern must not contain multiple forward slashes in a row, i.e. '//' (${method} ${pattern})`);
+      throw new Error(`The pattern must not contain multiple forward slashes in a row, i.e. '//' (${pattern})`);
     }
 
     if (data == null) {
-      throw new Error(`The data must not be null or undefined (${method} ${pattern})`);
+      throw new Error(`The data must not be null or undefined (${pattern})`);
     }
 
     const tokens = pattern.split('/');
@@ -45,15 +51,15 @@ export class Tree<TData> {
       if (token[0] === ':') {
         // parameter
         if (node.children['*'] != null) {
-          throw new Error(`The parameter '${token}' is in conflict with existing wildcard (${method} ${pattern})`);
+          throw new Error(`The parameter '${token}' is in conflict with existing wildcard (${pattern})`);
         }
         node = node.getOrAddChild(':', () => new TreeNode(token, token.substr(1), TreeNodeType.parameter, node));
       } else if (token[0] === '*') {
         // wildcard
         if (node.children[':'] != null) {
-          throw new Error(`The wildcard is in conflict with existing parameter '${node.children[':'].token}' (${method} ${pattern})`);
+          throw new Error(`The wildcard is in conflict with existing parameter '${node.children[':'].token}' (${pattern})`);
         } else if (i !== tokens.length - 1) {
-          throw new Error(`The wildcard must be the last section of a pattern (${method} ${pattern})`);
+          throw new Error(`The wildcard must be the last section of a pattern (${pattern})`);
         }
         node = node.getOrAddChild('*', () => new TreeNode(token, token.substr(1), TreeNodeType.wildcard, node));
       } else {
@@ -62,11 +68,15 @@ export class Tree<TData> {
       }
     }
 
-    if (node.data[method] != null) {
-      throw new Error(`The same method and pattern is already defined (${method} ${pattern})`);
+    for (const m of methods) {
+      if (node.data[m] != null) {
+        throw new Error(`The same method and pattern is already defined (${m} ${pattern})`);
+      }
     }
 
-    node.data[method] = data;
+    for (const m of methods) {
+      node.data[m] = data;
+    }
   }
 
   lookup(method: HTTPMethod, path: string): TreeMatch<TData> | null {

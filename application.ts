@@ -10,19 +10,25 @@ export interface Context<TState> {
     response: http.ServerResponse;
   };
   state: TState;
+  method: HTTPMethod;
+  scheme: 'http' | 'https';
+  host: string;
+  path: string;
   params: { [key: string]: string };
+  queryString: string;
+  query: { [key: string]: string };
 }
 
 export type Handler<TContext, TState>
   = (ctx: TContext) => Promise<HandlerResult>;
 
 export type HandlerResult
-  = null | HTTPStatusCode | string | { [key: string]: any } | { [key: string]: any }[] | ResultFunction;
+  = null | HTTPStatusCode | string | { [key: string]: any } | any[] | ResultFunction;
 
 export type Middleware<TContext, TState>
   = (ctx: TContext, next: () => Promise<HandlerResult>) => Promise<HandlerResult>;
 
-export class Application<TContext extends Context<TState> = Context<TState>, TState = {}> {
+export class Application<TContext extends Context<TState> = Context<TState>, TState = { [key: string]: any }> {
   private readonly stack: Stack<TState>;
   private readonly router: Router<TState>;
   private readonly middlewares: Middleware<TContext, TState>[] = [];
@@ -30,11 +36,7 @@ export class Application<TContext extends Context<TState> = Context<TState>, TSt
   constructor(stack?: Stack<TState>, router?: Router<TState>) {
     this.stack = stack || new Stack();
     this.router = router || new Router();
-    this.stack.use(this.router.middlware);
-  }
-
-  get listener() {
-    return this.stack.listener;
+    this.stack.use(this.router.asMiddleware());
   }
 
   GET(path: string, handler: Handler<TContext, TState>) {
@@ -70,18 +72,27 @@ export class Application<TContext extends Context<TState> = Context<TState>, TSt
     this.middlewares.push(middleware);
   }
 
-  on(method: HTTPMethod, path: string, handler: Handler<TContext, TState>) {
+  on(method: HTTPMethod | HTTPMethod[], path: string, handler: Handler<TContext, TState>) {
     if (handler == null) {
       throw new Error(`The handler must not be null or undefined`);
     } else if (typeof handler !== 'function') {
       throw new Error(`The handler must be a function`);
     }
 
-    this.router.on(method, path, async (stack) => {
+    this.router.on(method, path, async (route) => {
       const ctx: Context<TState> = {
-        http: { request: stack.request, response: stack.response },
-        state: stack.state as TState,
-        params: stack.params,
+        http: {
+          request: route.request,
+          response: route.response,
+        },
+        state: route.state as TState,
+        method: route.method,
+        scheme: route.scheme,
+        host: route.host,
+        path: route.path,
+        params: route.params,
+        queryString: route.queryString,
+        query: route.query,
       };
 
       let result = await handler(ctx as TContext);
@@ -96,23 +107,15 @@ export class Application<TContext extends Context<TState> = Context<TState>, TSt
         throw new Error('Unknown result type');
       }
 
-      await Promise.resolve((result as ResultFunction)(stack.request, stack.response));
+      await Promise.resolve((result as ResultFunction)(route.request, route.response));
     });
   }
 
+  asListener() {
+    return this.stack.asListener();
+  }
+
   start(port: number = 5000, callback?: (err: any, port: number) => void) {
-    const server = http.createServer(this.listener);
-    server.listen(port, (err: any) => {
-      if (callback) {
-        callback(err, port);
-      } else if (err) {
-        // tslint:disable-next-line:no-console
-        console.error(`Application failed to start`, err);
-      } else {
-        // tslint:disable-next-line:no-console
-        console.info(`Application started at http://localhost:${port}`);
-      }
-    });
-    return server;
+    this.stack.listen(port, callback);
   }
 }

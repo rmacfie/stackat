@@ -1,11 +1,13 @@
 {
   "include": [
     "./index.ts",
-    "./examples/**/*.ts"
+    "./examples/**/*.ts",
+    "./tests/**/*.ts"
   ],
   "exclude": [
     "./node_modules",
-    "./examples/**/*.d.ts"
+    "./examples/**/*.d.ts",
+    "./tests/**/*.d.ts"
   ],
   "compilerOptions": {
     /* Basic Options */

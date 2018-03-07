@@ -11,8 +11,6 @@
   "files": [
     "*.js",
     "*.d.ts",
-    ".editorconfig",
-    ".jsbeautifyrc",
     "tsconfig.json",
     "tslint.json"
   ],

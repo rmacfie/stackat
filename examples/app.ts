@@ -7,11 +7,11 @@ app.GET('/', async (ctx) => {
 });
 
 app.GET('/greet/:firstName', async (ctx) => {
-  return TextResult(`Hello, ${ctx.params.firstName}!`); // parameter
+  return TextResult(`Hello, ${ctx.request.params.firstName}!`); // parameter
 });
 
 app.GET('/greets/*names', async (ctx) => {
-  return TextResult(`Hello, ${ctx.params.names}!`); // wildcard (catch-all) parameter
+  return TextResult(`Hello, ${ctx.request.params.names}!`); // wildcard (catch-all) parameter
 });
 
 app.GET('/status', async (ctx) => {
@@ -27,7 +27,8 @@ app.GET('/api/json', async (ctx) => {
 });
 
 app.GET('/api/json/explicit', async (ctx) => {
-  return JSONResult({ foo: 'bar', x: 13 });
+  const x = Object.assign({}, ctx, { io: null });
+  return JSONResult({ foo: 'bar', something: ctx.request.query.something, ctx: x }); // querystring parameter
 });
 
 app.GET('/some/file', async (ctx) => {
@@ -45,4 +46,4 @@ app.GET('/my/page', async (ctx) => {
   `);
 });
 
-app.start(5000);
+app.start();

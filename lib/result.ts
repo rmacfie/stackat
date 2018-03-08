@@ -12,7 +12,7 @@ export type ResultFunction
 
 export const StatusResult = (statusCode: HTTPStatusCode): ResultFunction => {
   return (req, res) => {
-    res.writeHead(statusCode);
+    res.writeHead(statusCode, { 'Content-Length': '0' });
     res.end();
   };
 };

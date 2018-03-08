@@ -1,11 +1,11 @@
 import * as Benchmark from 'benchmark';
 import * as http from 'http';
-import { Application, Router, Stack, TextResult } from '../';
+import { appListener, httpListener, stackListener } from './listeners';
 
 const mock = {
   req: {
     method: 'GET',
-    url: '/foo/bar',
+    url: '/foo/bar?x=y',
     connection: {},
     headers: { host: 'localhost' },
   } as http.IncomingMessage,
@@ -24,37 +24,6 @@ const mock = {
     },
   } as http.ServerResponse,
 };
-
-const httpListener = (req: http.IncomingMessage, res: http.ServerResponse) => {
-  if (req.method === 'GET' && req.url === '/foo/bar') {
-    res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8' });
-    res.end('Hello, world.');
-  } else {
-    res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
-    res.end('Not Found');
-  }
-};
-
-const stackListener = new Stack()
-  .use(async (ctx, next) => {
-    if (ctx.request.method === 'GET' && ctx.request.url === '/foo/bar') {
-      ctx.response.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8' });
-      ctx.response.end('Hello, world.');
-    } else {
-      await next();
-    }
-  })
-  .setErrorHandler(async (err, ctx) => {
-    // tslint:disable-next-line:no-console
-    console.error(err);
-  })
-  .asListener();
-
-const appListener = new Application()
-  .GET('/foo/bar', async (ctx) => {
-    return TextResult('Hello, world.');
-  })
-  .asListener();
 
 const suite = new Benchmark.Suite('request.handling')
   .add('http', () => httpListener(mock.req, mock.res))

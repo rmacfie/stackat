@@ -36,31 +36,31 @@ export class Application<TContext extends Context<TState> = Context<TState>, TSt
   constructor(stack?: Stack<TState>, router?: Router<TState>) {
     this.stack = stack || new Stack();
     this.router = router || new Router();
-    this.stack.use(this.router.asMiddleware());
+    this.stack.setDefaultHandler(this.router.asDefaultHandler());
   }
 
   GET(path: string, handler: Handler<TContext, TState>) {
-    this.on('GET', path, handler);
+    return this.on('GET', path, handler);
   }
 
   HEAD(path: string, handler: Handler<TContext, TState>) {
-    this.on('HEAD', path, handler);
+    return this.on('HEAD', path, handler);
   }
 
   POST(path: string, handler: Handler<TContext, TState>) {
-    this.on('POST', path, handler);
+    return this.on('POST', path, handler);
   }
 
   PUT(path: string, handler: Handler<TContext, TState>) {
-    this.on('PUT', path, handler);
+    return this.on('PUT', path, handler);
   }
 
   DELETE(path: string, handler: Handler<TContext, TState>) {
-    this.on('DELETE', path, handler);
+    return this.on('DELETE', path, handler);
   }
 
   PATCH(path: string, handler: Handler<TContext, TState>) {
-    this.on('PATCH', path, handler);
+    return this.on('PATCH', path, handler);
   }
 
   use(middleware: Middleware<TContext, TState>) {
@@ -70,6 +70,7 @@ export class Application<TContext extends Context<TState> = Context<TState>, TSt
       throw new Error(`The middleware must be a function`);
     }
     this.middlewares.push(middleware);
+    return this;
   }
 
   on(method: HTTPMethod | HTTPMethod[], path: string, handler: Handler<TContext, TState>) {
@@ -95,27 +96,52 @@ export class Application<TContext extends Context<TState> = Context<TState>, TSt
         query: route.query,
       };
 
-      let result = await handler(ctx as TContext);
+      const maybe = await this.next(0, ctx as TContext, handler);
+      let func: ResultFunction;
 
-      if (result == null) {
-        result = EmptyResult();
-      } else if (typeof result === 'number') {
-        result = StatusResult(result);
-      } else if (typeof result === 'object') {
-        result = JSONResult(result);
-      } else if (typeof result !== 'function') {
-        throw new Error('Unknown result type');
+      if (maybe == null) {
+        func = EmptyResult();
+      } else {
+        switch (typeof maybe) {
+          case 'number':
+            func = StatusResult(maybe as any);
+            break;
+          case 'string':
+            func = HTMLResult(maybe as any);
+            break;
+          case 'object':
+            func = JSONResult(maybe);
+            break;
+          case 'function':
+            func = maybe as ResultFunction;
+            break;
+          default:
+            throw new Error('Unknown result type');
+        }
       }
 
-      await Promise.resolve((result as ResultFunction)(route.request, route.response));
+      await Promise.resolve(func(route.request, route.response));
     });
+
+    return this;
   }
 
   asListener() {
     return this.stack.asListener();
   }
 
-  start(port: number = 5000, callback?: (err: any, port: number) => void) {
+  listen(port: number = 5000, callback?: (err: any, port: number) => void) {
     this.stack.listen(port, callback);
+  }
+
+  private readonly next = (i: number, ctx: TContext, handler: Handler<TContext, TState>): Promise<HandlerResult> => {
+    if (i < this.middlewares.length) {
+      const middleware = this.middlewares[i];
+      return middleware(ctx, () => {
+        return this.next(i + 1, ctx, handler);
+      });
+    } else {
+      return handler(ctx);
+    }
   }
 }

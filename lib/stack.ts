@@ -31,6 +31,7 @@ export class Stack<TState = {}> {
       throw new Error(`The middleware must be a function`);
     }
     this.stack.push(middleware);
+    return this;
   }
 
   setErrorHandler(errorHandler: StackErrorHandler<TState>) {
@@ -40,6 +41,7 @@ export class Stack<TState = {}> {
       throw new Error(`The errorHandler must be a function`);
     }
     this.errorHandler = errorHandler;
+    return this;
   }
 
   setDefaultHandler(defaultHandler: StackDefaultHandler<TState>) {
@@ -49,6 +51,7 @@ export class Stack<TState = {}> {
       throw new Error(`The defaultHandler must be a function`);
     }
     this.defaultHandler = defaultHandler;
+    return this;
   }
 
   listen(port: number = 5000, callback?: (err: any, port: number) => void) {
@@ -78,24 +81,25 @@ export class Stack<TState = {}> {
     });
   }
 
-  private readonly next = async (i: number, ctx: StackContext<TState>) => {
+  private readonly next = (i: number, ctx: StackContext<TState>): Promise<void> => {
     if (this.stack.length < i + 1) {
       if (this.defaultHandler != null) {
-        await this.defaultHandler(ctx);
+        return this.defaultHandler(ctx);
+      } else {
+        return Promise.resolve();
       }
-      return;
     }
     const middleware = this.stack[i];
-    await middleware(ctx, async () => {
-      await this.next(i + 1, ctx);
+    return middleware(ctx, () => {
+      return this.next(i + 1, ctx);
     });
   }
 }
 
 const initialErrorHandler: StackErrorHandler<any> = (err, ctx) => {
-  ctx.response.writeHead(500, { 'Content-Type': 'text/plain; charset=UTF-8' });
-  ctx.response.end('# Internal Server Error\n\n' + err);
   // tslint:disable-next-line:no-console
   console.error('Unhandled error', err);
+  ctx.response.writeHead(500, { 'Content-Type': 'text/plain; charset=utf-8' });
+  ctx.response.end('# Internal Server Error\n\n' + err);
   return Promise.resolve();
 };

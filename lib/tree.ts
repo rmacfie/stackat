@@ -77,6 +77,8 @@ export class Tree<TData> {
     for (const m of methods) {
       node.data[m] = data;
     }
+
+    return this;
   }
 
   lookup(method: HTTPMethod, path: string): TreeMatch<TData> | null {

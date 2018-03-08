@@ -15,19 +15,25 @@
     "tslint.json"
   ],
   "scripts": {
-    "clean": "rimraf ./*.{js,d.ts}",
-    "build:ts": "tsc -d",
-    "build": "run-s clean build:*",
-    "prepublish": "run-s build",
+    "clean": "rimraf ./{**,!node_modules}/*.{js,d.ts}",
+    "build": "tsc",
+    "buildw": "tsc --watch",
+    "dist:ts": "tsc -d",
+    "dist": "run-s dist:*",
+    "prepublish": "run-s clean dist",
     "test": "jest",
-    "watch": "jest --watch",
-    "examples:ts": "tsc --watch",
+    "testw": "jest --watch",
+    "bench:request": "node ./benchmarks/request.js",
+    "bench:tree": "node ./benchmarks/tree.js",
+    "bench": "run-s build bench:*",
     "examples:app": "nodemon examples/app.js",
-    "examples": "run-p examples:*"
+    "examples": "run-p buildw examples:*"
   },
   "devDependencies": {
+    "@types/benchmark": "^1.0.31",
     "@types/jest": "^22.1.4",
     "@types/node": "^9.4.6",
+    "benchmark": "^2.1.4",
     "jest": "^22.4.2",
     "nodemon": "^1.17.1",
     "npm-run-all": "^4.1.2",
@@ -41,7 +47,7 @@
     "transform": {
       "^.+\\.tsx?$": "ts-jest"
     },
-    "testRegex": "\\.(test|spec)\\.(jsx?|tsx?)$",
+    "testRegex": "\\.(test|spec)\\.tsx?$",
     "moduleFileExtensions": [
       "ts",
       "tsx",

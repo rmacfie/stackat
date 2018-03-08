@@ -3,32 +3,38 @@ import { Application, FileResult, HTMLResult, JSONResult, TextResult } from '../
 const app = new Application();
 
 app.GET('/', async (ctx) => {
-  return TextResult(`Hello, world!`); // plain text result
+  // strings defaults to HTML result
+  return `<html>Hello, world!</html>`;
 });
 
 app.GET('/greet/:firstName', async (ctx) => {
-  return TextResult(`Hello, ${ctx.request.params.firstName}!`); // parameter
+  // path parameter
+  return TextResult(`Hello, ${ctx.params.firstName}!`);
 });
 
 app.GET('/greets/*names', async (ctx) => {
-  return TextResult(`Hello, ${ctx.request.params.names}!`); // wildcard (catch-all) parameter
+  // wildcard (catch-all) parameter
+  return TextResult(`Hello, ${ctx.params.names}!`);
 });
 
 app.GET('/status', async (ctx) => {
-  return 418; // empty result with the given status code
+  // number result defaults to an empty status code result
+  return 418;
 });
 
 app.GET('/empty', async (ctx) => {
-  return null; // empty result with status code 204 (No Content)
+  // empty result with status code 204 (No Content)
+  return null;
 });
 
 app.GET('/api/json', async (ctx) => {
+  // objects defaults to JSON result
   return { foo: 'bar', x: 24 };
 });
 
 app.GET('/api/json/explicit', async (ctx) => {
-  const x = Object.assign({}, ctx, { io: null });
-  return JSONResult({ foo: 'bar', something: ctx.request.query.something, ctx: x }); // querystring parameter
+  // querystring parameter
+  return JSONResult({ foo: 'bar', something: ctx.query.something });
 });
 
 app.GET('/some/file', async (ctx) => {
@@ -46,4 +52,4 @@ app.GET('/my/page', async (ctx) => {
   `);
 });
 
-app.start();
+app.listen();

@@ -1,5 +1,5 @@
 import * as http from 'http';
-import { StackMiddleware } from './stack';
+import { StackContext, StackDefaultHandler, StackMiddleware } from './stack';
 import { HTTPMethod, Tree } from './tree';
 
 export interface RouteContext<TState> {
@@ -58,7 +58,11 @@ export class Router<TState = {}> {
     return this.stackMiddleware;
   }
 
-  private readonly stackMiddleware: StackMiddleware<TState> = async (ctx, next) => {
+  asDefaultHandler(): StackDefaultHandler<TState> {
+    return this.stackMiddleware;
+  }
+
+  private readonly stackMiddleware = async (ctx: StackContext<TState>, next?: () => Promise<void>) => {
     const method = ctx.request.method;
     const url = ctx.request.url;
 
@@ -72,15 +76,21 @@ export class Router<TState = {}> {
     const match = this.handlers.lookup(method as HTTPMethod, path);
 
     if (match == null) {
-      // no match
-      return await next();
+      if (next == null) {
+        // no match, no next handler
+        ctx.response.writeHead(404, { 'Content-Length': '0' });
+        ctx.response.end();
+      } else {
+        // no match, hand over to next handler
+        return await next();
+      }
     } else if (method === 'OPTIONS') {
       // client is asking for allowed methods
-      ctx.response.writeHead(200, { Allow: match.options.join(', ') });
+      ctx.response.writeHead(200, { 'Allow': match.options.join(', '), 'Content-Length': '0' });
       ctx.response.end();
     } else if (match.data == null) {
       // client can't use the requested method on this route
-      ctx.response.writeHead(405, { Allow: match.options.join(', ') });
+      ctx.response.writeHead(405, { 'Allow': match.options.join(', '), 'Content-Length': '0' });
       ctx.response.end();
     } else {
       // call the handler

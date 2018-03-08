@@ -1,4 +1,4 @@
-import { Tree } from '../tree';
+import { Tree } from '../lib/tree';
 
 let subject: Tree<number>;
 
